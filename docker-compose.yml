@@ -24,6 +24,28 @@ services:
       - gmaps_data:/gmapsdata    # job results; they persist until you delete the job or the volume
       - gmaps_cache:/opt         # Playwright browser cache, so restarts skip the download
 
+  # Postgres for the dashboard app in app/ (leads and job history). Bound to 127.0.0.1 only.
+  # Host port: POSTGRES_PORT in .env, default 5433 (5432 is often taken by a local Postgres).
+  # These are local-dev credentials; change them in .env if you ever expose the port.
+  postgres:
+    image: postgres:17-alpine
+    container_name: gmaps-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gmaps}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gmaps}
+      POSTGRES_DB: ${POSTGRES_DB:-gmaps}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - gmaps_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-gmaps}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
+  gmaps_pg:
   gmaps_data:
   gmaps_cache:

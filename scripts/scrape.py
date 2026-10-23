@@ -295,6 +295,11 @@ def enrich_emails(results, workers=8):
 
 
 def main():
+    # Windows consoles default to cp1252, which can't encode the progress symbols (e.g. U+25B6).
+    # Replace unencodable characters instead of crashing.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     ap = argparse.ArgumentParser(description="Scrape Google Maps business listings.")
     ap.add_argument("keyword", nargs="?", help='e.g. "coffee shops in Austin TX"')
     ap.add_argument("lat", nargs="?", help="latitude (optional if --city given)")
@@ -434,10 +439,10 @@ def main():
     as_json = a.json or (a.out and a.out.lower().endswith(".json"))
     out = a.out or f"results-{job_id[:8]}.{'json' if as_json else 'csv'}"
     if as_json:
-        with open(out, "w") as f:
+        with open(out, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
     else:
-        with open(out, "w", newline="") as f:
+        with open(out, "w", newline="", encoding="utf-8-sig") as f:
             w = csv.DictWriter(f, fieldnames=fields)
             w.writeheader()
             w.writerows(results)
